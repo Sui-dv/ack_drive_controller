@@ -131,11 +131,11 @@ InterfaceConfiguration AckDriveController::state_interface_configuration() const
   std::vector<std::string> conf_names;
   for (const auto & joint_name : left_wheel_names_)
   {
-    conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
+    conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
   }
   for (const auto & joint_name : right_wheel_names_)
   {
-    conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
+    conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
   }
   return {interface_configuration_type::INDIVIDUAL, conf_names};
 }
@@ -606,7 +606,7 @@ CallbackReturn AckDriveController::configure_side(
     const auto state_handle = std::find_if(
       state_interfaces_.cbegin(), state_interfaces_.cend(), [&wheel_name](const auto & interface) {
         return interface.get_name() == wheel_name &&
-               interface.get_interface_name() == HW_IF_POSITION;
+               interface.get_interface_name() == HW_IF_VELOCITY;
       });
 
     if (state_handle == state_interfaces_.cend())
