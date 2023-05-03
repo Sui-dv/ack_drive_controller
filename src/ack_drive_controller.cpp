@@ -65,9 +65,11 @@ controller_interface::return_type AckDriveController::init(const std::string & c
     auto_declare<std::vector<std::string>>("left_steering_names", std::vector<std::string>());
     auto_declare<std::vector<std::string>>("right_steering_names", std::vector<std::string>());
 
+    auto_declare<double>("wheel_base", wheel_params_.base);
     auto_declare<double>("wheel_separation", wheel_params_.separation);
     auto_declare<int>("wheels_per_side", wheel_params_.wheels_per_side);
     auto_declare<double>("wheel_radius", wheel_params_.radius);
+    auto_declare<double>("wheel_base_multiplier", wheel_params_.base_multiplier);
     auto_declare<double>("wheel_separation_multiplier", wheel_params_.separation_multiplier);
     auto_declare<double>("left_wheel_radius_multiplier", wheel_params_.left_radius_multiplier);
     auto_declare<double>("right_wheel_radius_multiplier", wheel_params_.right_radius_multiplier);
@@ -198,6 +200,7 @@ controller_interface::return_type AckDriveController::update()
 
   // Apply (possibly new) multipliers:
   const auto wheels = wheel_params_;
+  const double wheel_base = wheels.base_multiplier * wheels.base;
   const double wheel_separation = wheels.separation_multiplier * wheels.separation;
   const double left_wheel_radius = wheels.left_radius_multiplier * wheels.radius;
   const double right_wheel_radius = wheels.right_radius_multiplier * wheels.radius;
@@ -347,10 +350,13 @@ CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
   }
 
   // update wheel params
+  wheel_params_.base = node_->get_parameter("wheel_base").as_double();
   wheel_params_.separation = node_->get_parameter("wheel_separation").as_double();
   wheel_params_.wheels_per_side =
     static_cast<size_t>(node_->get_parameter("wheels_per_side").as_int());
   wheel_params_.radius = node_->get_parameter("wheel_radius").as_double();
+  wheel_params_.base_multiplier =
+    node_->get_parameter("wheel_base_multiplier").as_double();
   wheel_params_.separation_multiplier =
     node_->get_parameter("wheel_separation_multiplier").as_double();
   wheel_params_.left_radius_multiplier =
@@ -360,6 +366,7 @@ CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
 
   const auto wheels = wheel_params_;
 
+  const double wheel_base = wheels.base_multiplier * wheels.base;
   const double wheel_separation = wheels.separation_multiplier * wheels.separation;
   const double left_wheel_radius = wheels.left_radius_multiplier * wheels.radius;
   const double right_wheel_radius = wheels.right_radius_multiplier * wheels.radius;

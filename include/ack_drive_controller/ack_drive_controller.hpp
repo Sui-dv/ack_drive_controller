@@ -122,8 +122,10 @@ protected:
   struct WheelParams
   {
     size_t wheels_per_side = 0;
+    double base = 0.0;
     double separation = 0.0;  // w.r.t. the midpoint of the wheel width
     double radius = 0.0;      // Assumed to be the same for both wheels
+    double base_multiplier = 1.0;
     double separation_multiplier = 1.0;
     double left_radius_multiplier = 1.0;
     double right_radius_multiplier = 1.0;
