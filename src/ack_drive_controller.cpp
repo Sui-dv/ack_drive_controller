@@ -16,6 +16,9 @@
  * Author: Bence Magyar, Enrique Fernández, Manuel Meraz
  */
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <memory>
 #include <queue>
 #include <string>
@@ -205,6 +208,7 @@ controller_interface::return_type AckDriveController::update()
   const double left_wheel_radius = wheels.left_radius_multiplier * wheels.radius;
   const double right_wheel_radius = wheels.right_radius_multiplier * wheels.radius;
 
+  // ODOM_EDIT
   if (odom_params_.open_loop)
   {
     odometry_.updateOpenLoop(linear_command, angular_command, current_time);
@@ -293,17 +297,35 @@ controller_interface::return_type AckDriveController::update()
     realtime_limited_velocity_publisher_->unlockAndPublish();
   }
 
-  // Compute wheels velocities:
-  const double velocity_left =
-    (linear_command - angular_command * wheel_separation / 2.0) / left_wheel_radius;
-  const double velocity_right =
-    (linear_command + angular_command * wheel_separation / 2.0) / right_wheel_radius;
+  // Division by zero be gone
+  if (angular_command == 0){
+    angular_command = 0.001;
+  }
 
-  // Set wheels velocities:
+  // Turning radius
+  const double turning_radius = abs(linear_command / angular_command);
+
+  // Compute steering angles: (pi = M_PI = 3.14........)
+  const double steering_angle_left =
+    M_PI/2 - atan((2*turning_radius - wheel_base) / wheel_separation);
+  const double steering_angle_right =
+    M_PI/2 - atan((2*turning_radius + wheel_base) / wheel_separation);
+
+  // Axis distance
+  const double left_axis = abs(wheel_separation / (2 * sin(steering_angle_left)));
+  const double right_axis = abs(wheel_separation / (2 * sin(steering_angle_right)));
+
+  // Compute wheels velocities:
+  const double wheel_velocity_left = angular_command * left_axis / left_wheel_radius;
+  const double wheel_velocity_right = angular_command * right_axis / right_wheel_radius;
+
+  // Set motor state:
   for (size_t index = 0; index < wheels.wheels_per_side; ++index)
   {
-    registered_left_wheel_handles_[index].velocity.get().set_value(velocity_left);
-    registered_right_wheel_handles_[index].velocity.get().set_value(velocity_right);
+    registered_left_wheel_handles_[index].velocity.get().set_value(wheel_velocity_left);
+    registered_right_wheel_handles_[index].velocity.get().set_value(wheel_velocity_right);
+    registered_left_steering_handles_[index].position.get().set_value(steering_angle_left);
+    registered_right_steering_handles_[index].position.get().set_value(steering_angle_right);
   }
 
   return controller_interface::return_type::OK;
