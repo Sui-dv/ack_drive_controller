@@ -85,13 +85,14 @@ public:
   CallbackReturn on_shutdown(const rclcpp_lifecycle::State & previous_state) override;
 
 protected:
+  // Wheel variables
   struct WheelHandle
   {
     std::reference_wrapper<const hardware_interface::LoanedStateInterface> feedback; // Feedback type: Velocity
     std::reference_wrapper<hardware_interface::LoanedCommandInterface> velocity;
   };
 
-  CallbackReturn configure_side(
+  CallbackReturn configure_side_wheel(
     const std::string & side, const std::vector<std::string> & wheel_names,
     std::vector<WheelHandle> & registered_handles);
 
@@ -100,6 +101,23 @@ protected:
 
   std::vector<WheelHandle> registered_left_wheel_handles_;
   std::vector<WheelHandle> registered_right_wheel_handles_;
+
+  // Steering variables
+  struct SteeringHandle
+  {
+    std::reference_wrapper<const hardware_interface::LoanedStateInterface> feedback; // Feedback type: Position
+    std::reference_wrapper<hardware_interface::LoanedCommandInterface> position;
+  };
+
+  CallbackReturn configure_side_steering(
+    const std::string & side, const std::vector<std::string> & steering_names,
+    std::vector<SteeringHandle> & registered_handles);
+
+  std::vector<std::string> left_steering_names_;
+  std::vector<std::string> right_steering_names_;
+
+  std::vector<SteeringHandle> registered_left_steering_handles_;
+  std::vector<SteeringHandle> registered_right_steering_handles_;
 
   struct WheelParams
   {

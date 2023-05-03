@@ -194,9 +194,9 @@ controller_interface::return_type AckDriveController::update()
     double right_position_mean = 0.0;
     for (size_t index = 0; index < wheels.wheels_per_side; ++index)
     {
-      const double left_position = registered_left_wheel_handles_[index].position.get().get_value();
+      const double left_position = registered_left_wheel_handles_[index].feedback.get().get_value();
       const double right_position =
-        registered_right_wheel_handles_[index].position.get().get_value();
+        registered_right_wheel_handles_[index].feedback.get().get_value();
 
       if (std::isnan(left_position) || std::isnan(right_position))
       {
@@ -500,9 +500,9 @@ CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
 CallbackReturn AckDriveController::on_activate(const rclcpp_lifecycle::State &)
 {
   const auto left_result =
-    configure_side("left", left_wheel_names_, registered_left_wheel_handles_);
+    configure_side_wheel("left", left_wheel_names_, registered_left_wheel_handles_);
   const auto right_result =
-    configure_side("right", right_wheel_names_, registered_right_wheel_handles_);
+    configure_side_wheel("right", right_wheel_names_, registered_right_wheel_handles_);
 
   if (left_result == CallbackReturn::ERROR || right_result == CallbackReturn::ERROR)
   {
@@ -587,7 +587,7 @@ void AckDriveController::halt()
   halt_wheels(registered_right_wheel_handles_);
 }
 
-CallbackReturn AckDriveController::configure_side(
+CallbackReturn AckDriveController::configure_side_wheel(
   const std::string & side, const std::vector<std::string> & wheel_names,
   std::vector<WheelHandle> & registered_handles)
 {
