@@ -62,6 +62,8 @@ controller_interface::return_type AckDriveController::init(const std::string & c
     // with the lifecycle node being initialized, we can declare parameters
     auto_declare<std::vector<std::string>>("left_wheel_names", std::vector<std::string>());
     auto_declare<std::vector<std::string>>("right_wheel_names", std::vector<std::string>());
+    auto_declare<std::vector<std::string>>("left_steering_names", std::vector<std::string>());
+    auto_declare<std::vector<std::string>>("right_steering_names", std::vector<std::string>());
 
     auto_declare<double>("wheel_separation", wheel_params_.separation);
     auto_declare<int>("wheels_per_side", wheel_params_.wheels_per_side);
@@ -123,6 +125,14 @@ InterfaceConfiguration AckDriveController::command_interface_configuration() con
   {
     conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
   }
+  for (const auto & joint_name : left_steering_names_)
+  {
+    conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
+  }
+  for (const auto & joint_name : right_steering_names_)
+  {
+    conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
+  }
   return {interface_configuration_type::INDIVIDUAL, conf_names};
 }
 
@@ -136,6 +146,14 @@ InterfaceConfiguration AckDriveController::state_interface_configuration() const
   for (const auto & joint_name : right_wheel_names_)
   {
     conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
+  }
+  for (const auto & joint_name : left_steering_names_)
+  {
+    conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
+  }
+  for (const auto & joint_name : right_steering_names_)
+  {
+    conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
   }
   return {interface_configuration_type::INDIVIDUAL, conf_names};
 }
@@ -292,7 +310,7 @@ CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
 {
   auto logger = node_->get_logger();
 
-  // update parameters
+  // update parameters for wheels
   left_wheel_names_ = node_->get_parameter("left_wheel_names").as_string_array();
   right_wheel_names_ = node_->get_parameter("right_wheel_names").as_string_array();
 
@@ -310,6 +328,25 @@ CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::ERROR;
   }
 
+  // update parameters for steerings
+  left_steering_names_ = node_->get_parameter("left_steering_names").as_string_array();
+  right_steering_names_ = node_->get_parameter("right_steering_names").as_string_array();
+
+  if (left_steering_names_.size() != right_steering_names_.size())
+  {
+    RCLCPP_ERROR(
+      logger, "The number of left steerings [%zu] and the number of right steerings [%zu] are different",
+      left_steering_names_.size(), right_steering_names_.size());
+    return CallbackReturn::ERROR;
+  }
+
+  if (left_steering_names_.empty())
+  {
+    RCLCPP_ERROR(logger, "Wheel names parameters are empty!");
+    return CallbackReturn::ERROR;
+  }
+
+  // update wheel params
   wheel_params_.separation = node_->get_parameter("wheel_separation").as_double();
   wheel_params_.wheels_per_side =
     static_cast<size_t>(node_->get_parameter("wheels_per_side").as_int());
@@ -499,12 +536,17 @@ CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
 
 CallbackReturn AckDriveController::on_activate(const rclcpp_lifecycle::State &)
 {
-  const auto left_result =
+  const auto left_wheel_result =
     configure_side_wheel("left", left_wheel_names_, registered_left_wheel_handles_);
-  const auto right_result =
+  const auto right_wheel_result =
     configure_side_wheel("right", right_wheel_names_, registered_right_wheel_handles_);
+  const auto left_steering_result =
+    configure_side_steering("left", left_steering_names_, registered_left_steering_handles_);
+  const auto right_steering_result =
+    configure_side_steering("right", right_steering_names_, registered_right_steering_handles_);
 
-  if (left_result == CallbackReturn::ERROR || right_result == CallbackReturn::ERROR)
+  if (left_wheel_result == CallbackReturn::ERROR || right_wheel_result == CallbackReturn::ERROR
+      || left_steering_result == CallbackReturn::ERROR || right_steering_result == CallbackReturn::ERROR)
   {
     return CallbackReturn::ERROR;
   }
@@ -513,6 +555,13 @@ CallbackReturn AckDriveController::on_activate(const rclcpp_lifecycle::State &)
   {
     RCLCPP_ERROR(
       node_->get_logger(), "Either left wheel interfaces, right wheel interfaces are non existent");
+    return CallbackReturn::ERROR;
+  }
+
+  if (registered_left_steering_handles_.empty() || registered_right_steering_handles_.empty())
+  {
+    RCLCPP_ERROR(
+      node_->get_logger(), "Either left steering interfaces, right steering interfaces are non existent");
     return CallbackReturn::ERROR;
   }
 
@@ -559,6 +608,8 @@ bool AckDriveController::reset()
 
   registered_left_wheel_handles_.clear();
   registered_right_wheel_handles_.clear();
+  registered_left_steering_handles_.clear();
+  registered_right_steering_handles_.clear();
 
   subscriber_is_active_ = false;
   velocity_command_subscriber_.reset();
@@ -585,6 +636,16 @@ void AckDriveController::halt()
 
   halt_wheels(registered_left_wheel_handles_);
   halt_wheels(registered_right_wheel_handles_);
+
+  const auto halt_steerings = [](auto & steering_handles) {
+    for (const auto & steering_handle : steering_handles)
+    {
+      steering_handle.position.get().set_value(0.0);
+    }
+  };
+
+  halt_steerings(registered_left_steering_handles_);
+  halt_steerings(registered_right_steering_handles_);
 }
 
 CallbackReturn AckDriveController::configure_side_wheel(
@@ -630,6 +691,54 @@ CallbackReturn AckDriveController::configure_side_wheel(
 
     registered_handles.emplace_back(
       WheelHandle{std::ref(*state_handle), std::ref(*command_handle)});
+  }
+
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn AckDriveController::configure_side_steering(
+  const std::string & side, const std::vector<std::string> & steering_names,
+  std::vector<SteeringHandle> & registered_handles)
+{
+  auto logger = node_->get_logger();
+
+  if (steering_names.empty())
+  {
+    RCLCPP_ERROR(logger, "No '%s' steering names specified", side.c_str());
+    return CallbackReturn::ERROR;
+  }
+
+  // register handles
+  registered_handles.reserve(steering_names.size());
+  for (const auto & steering_name : steering_names)
+  {
+    const auto state_handle = std::find_if(
+      state_interfaces_.cbegin(), state_interfaces_.cend(), [&steering_name](const auto & interface) {
+        return interface.get_name() == steering_name &&
+               interface.get_interface_name() == HW_IF_POSITION;
+      });
+
+    if (state_handle == state_interfaces_.cend())
+    {
+      RCLCPP_ERROR(logger, "Unable to obtain joint state handle for %s", steering_name.c_str());
+      return CallbackReturn::ERROR;
+    }
+
+    const auto command_handle = std::find_if(
+      command_interfaces_.begin(), command_interfaces_.end(),
+      [&steering_name](const auto & interface) {
+        return interface.get_name() == steering_name &&
+               interface.get_interface_name() == HW_IF_POSITION;
+      });
+
+    if (command_handle == command_interfaces_.end())
+    {
+      RCLCPP_ERROR(logger, "Unable to obtain joint command handle for %s", steering_name.c_str());
+      return CallbackReturn::ERROR;
+    }
+
+    registered_handles.emplace_back(
+      SteeringHandle{std::ref(*state_handle), std::ref(*command_handle)});
   }
 
   return CallbackReturn::SUCCESS;
