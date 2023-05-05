@@ -351,8 +351,11 @@ controller_interface::return_type AckDriveController::update()
   {
     registered_left_wheel_handles_[index].velocity.get().set_value(wheel_velocity_left);
     registered_right_wheel_handles_[index].velocity.get().set_value(wheel_velocity_right);
-    registered_left_steering_handles_[index].position.get().set_value(steering_angle_left);
-    registered_right_steering_handles_[index].position.get().set_value(steering_angle_right);
+
+    registered_left_steering_handles_[0].position.get().set_value(steering_angle_left);     // Front wheels
+    registered_right_steering_handles_[0].position.get().set_value(steering_angle_right);
+    registered_left_steering_handles_[1].position.get().set_value(-steering_angle_left);    // Rear wheels
+    registered_right_steering_handles_[1].position.get().set_value(-steering_angle_right);
   }
 
   return controller_interface::return_type::OK;
