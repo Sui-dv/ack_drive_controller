@@ -166,6 +166,7 @@ InterfaceConfiguration AckDriveController::state_interface_configuration() const
 controller_interface::return_type AckDriveController::update()
 {
   auto logger = node_->get_logger();
+  
   if (get_current_state().id() == State::PRIMARY_STATE_INACTIVE)
   {
     if (!is_halted)
@@ -302,14 +303,38 @@ controller_interface::return_type AckDriveController::update()
     angular_command = 0.001;
   }
 
+  RCLCPP_INFO(logger, "Linear: %f, Angular: %f \n", linear_command, angular_command);
+
+  // Quadrant Check
+  int quadrant = 0;
+  if (linear_command > 0) {
+    if (angular_command > 0) {
+      quadrant = 1;
+    } else {
+      quadrant = 2;
+    }
+  } else {
+    if (angular_command > 0) {
+      quadrant = 4;
+    } else {
+      quadrant = 3;
+    }
+  }
+
+  RCLCPP_INFO(logger, "Quadrant: %d \n", quadrant);
+
   // Turning radius
   const double turning_radius = abs(linear_command / angular_command);
+
+  RCLCPP_INFO(logger, "Turning radius: %f \n", turning_radius);
 
   // Compute steering angles: (pi = M_PI = 3.14........)
   const double steering_angle_left =
     M_PI/2 - atan((2*turning_radius - wheel_base) / wheel_separation);
   const double steering_angle_right =
     M_PI/2 - atan((2*turning_radius + wheel_base) / wheel_separation);
+
+  RCLCPP_INFO(logger, "Angle left: %f, right: %f \n", steering_angle_left, steering_angle_right);
 
   // Axis distance
   const double left_axis = abs(wheel_separation / (2 * sin(steering_angle_left)));
@@ -318,6 +343,8 @@ controller_interface::return_type AckDriveController::update()
   // Compute wheels velocities:
   const double wheel_velocity_left = angular_command * left_axis / left_wheel_radius;
   const double wheel_velocity_right = angular_command * right_axis / right_wheel_radius;
+
+  RCLCPP_INFO(logger, "Wheel velocity left: %f, right: %f \n", wheel_velocity_left, wheel_velocity_right);
 
   // Set motor state:
   for (size_t index = 0; index < wheels.wheels_per_side; ++index)
