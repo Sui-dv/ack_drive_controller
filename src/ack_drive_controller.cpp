@@ -298,65 +298,75 @@ controller_interface::return_type AckDriveController::update()
     realtime_limited_velocity_publisher_->unlockAndPublish();
   }
 
-  // Division by zero be gone
+  double angle_left, angle_right, velocity_left, velocity_right, turning_radius = -1;
+
   if (angular_command == 0){
-    angular_command = 0.001;
+    velocity_left = abs(linear_command / left_wheel_radius);
+    velocity_right = abs(linear_command / right_wheel_radius);
+    angle_left = 0;
+    angle_right = 0;
+  } else if (linear_command != 0) {
+    // Turning radius
+    turning_radius = abs(linear_command / angular_command);
+
+    // Compute steering angles: (pi = M_PI = 3.14........)
+    angle_left = M_PI/2 - atan((2*turning_radius - wheel_base) / wheel_separation);
+    angle_right = M_PI/2 - atan((2*turning_radius + wheel_base) / wheel_separation);
+
+    // Axis distance
+    const double left_axis = abs(wheel_separation / (2 * sin(angle_left)));
+    const double right_axis = abs(wheel_separation / (2 * sin(angle_right)));
+
+    // Compute wheels velocities:
+    velocity_left = abs(angular_command * left_axis / left_wheel_radius);
+    velocity_right = abs(angular_command * right_axis / right_wheel_radius);
+  } else {
+    RCLCPP_ERROR(logger, "Turning radius is too short!\n");
   }
 
-  RCLCPP_INFO(logger, "Linear: %f, Angular: %f \n", linear_command, angular_command);
+  // Direction matrix
+  int d[4][4] = {  
+   {1, 1, 1, 1} ,   // Linear > 0, Angular > 0
+   {-1, -1, 1, 1} , // Linear > 0, Angular < 0
+   {1, 1, -1, -1} , // Linear < 0, Angular > 0
+   {-1, -1, -1, -1} // Linear < 0, Angular < 0
+  };
 
   // Quadrant Check
-  int quadrant = 0;
+  int cmd_direction = 0;
   if (linear_command > 0) {
     if (angular_command > 0) {
-      quadrant = 1;
+      cmd_direction = 0;
     } else {
-      quadrant = 2;
+      cmd_direction = 1;
     }
   } else {
     if (angular_command > 0) {
-      quadrant = 4;
+      cmd_direction = 2;
     } else {
-      quadrant = 3;
+      cmd_direction = 3;
     }
   }
 
-  RCLCPP_INFO(logger, "Quadrant: %d \n", quadrant);
+  const double steering_angle_left = d[cmd_direction][0] * (angular_command > 0 ? angle_left : angle_right);
+  const double steering_angle_right = d[cmd_direction][1] * (angular_command > 0 ? angle_right : angle_left);
+  const double wheel_velocity_left = d[cmd_direction][2] * (angular_command > 0 ? velocity_left : velocity_right);
+  const double wheel_velocity_right = d[cmd_direction][3] * (angular_command > 0 ? velocity_right : velocity_left);
 
-  // Turning radius
-  const double turning_radius = abs(linear_command / angular_command);
+  // Debugger
+  RCLCPP_INFO(logger, "Linear: %f, Angular: %f\nTurning radius: %f \nAngle left: %f, right: %f \nWheel velocity left: %f, right: %f \n", linear_command, angular_command, turning_radius, steering_angle_left, steering_angle_right, wheel_velocity_left, wheel_velocity_right);
 
-  RCLCPP_INFO(logger, "Turning radius: %f \n", turning_radius);
-
-  // Compute steering angles: (pi = M_PI = 3.14........)
-  const double steering_angle_left =
-    M_PI/2 - atan((2*turning_radius - wheel_base) / wheel_separation);
-  const double steering_angle_right =
-    M_PI/2 - atan((2*turning_radius + wheel_base) / wheel_separation);
-
-  RCLCPP_INFO(logger, "Angle left: %f, right: %f \n", steering_angle_left, steering_angle_right);
-
-  // Axis distance
-  const double left_axis = abs(wheel_separation / (2 * sin(steering_angle_left)));
-  const double right_axis = abs(wheel_separation / (2 * sin(steering_angle_right)));
-
-  // Compute wheels velocities:
-  const double wheel_velocity_left = angular_command * left_axis / left_wheel_radius;
-  const double wheel_velocity_right = angular_command * right_axis / right_wheel_radius;
-
-  RCLCPP_INFO(logger, "Wheel velocity left: %f, right: %f \n", wheel_velocity_left, wheel_velocity_right);
-
-  // Set motor state:
+  // Set motor state: set value type const double
   for (size_t index = 0; index < wheels.wheels_per_side; ++index)
   {
     registered_left_wheel_handles_[index].velocity.get().set_value(wheel_velocity_left);
     registered_right_wheel_handles_[index].velocity.get().set_value(wheel_velocity_right);
-
-    registered_left_steering_handles_[0].position.get().set_value(steering_angle_left);     // Front wheels
-    registered_right_steering_handles_[0].position.get().set_value(steering_angle_right);
-    registered_left_steering_handles_[1].position.get().set_value(-steering_angle_left);    // Rear wheels
-    registered_right_steering_handles_[1].position.get().set_value(-steering_angle_right);
   }
+
+  registered_left_steering_handles_[0].position.get().set_value(steering_angle_left);     // Front wheels
+  registered_right_steering_handles_[0].position.get().set_value(steering_angle_right);
+  registered_left_steering_handles_[1].position.get().set_value(-steering_angle_left);    // Rear wheels
+  registered_right_steering_handles_[1].position.get().set_value(-steering_angle_right);
 
   return controller_interface::return_type::OK;
 }
