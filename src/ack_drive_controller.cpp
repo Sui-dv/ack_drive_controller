@@ -328,8 +328,8 @@ controller_interface::return_type AckDriveController::update()
   int d[4][4] = {  
    {1, 1, 1, 1} ,   // Linear > 0, Angular > 0
    {-1, -1, 1, 1} , // Linear > 0, Angular < 0
-   {1, 1, -1, -1} , // Linear < 0, Angular > 0
-   {-1, -1, -1, -1} // Linear < 0, Angular < 0
+   {-1, -1, -1, -1} , // Linear < 0, Angular > 0
+   {1, 1, -1, -1} // Linear < 0, Angular < 0
   };
 
   // Quadrant Check
@@ -348,10 +348,10 @@ controller_interface::return_type AckDriveController::update()
     }
   }
 
-  const double steering_angle_left = d[cmd_direction][0] * (angular_command > 0 ? angle_left : angle_right);
-  const double steering_angle_right = d[cmd_direction][1] * (angular_command > 0 ? angle_right : angle_left);
-  const double wheel_velocity_left = d[cmd_direction][2] * (angular_command > 0 ? velocity_left : velocity_right);
-  const double wheel_velocity_right = d[cmd_direction][3] * (angular_command > 0 ? velocity_right : velocity_left);
+  const double steering_angle_left = d[cmd_direction][0] * (cmd_direction == 0 || cmd_direction == 3 ? angle_left : angle_right);
+  const double steering_angle_right = d[cmd_direction][1] * (cmd_direction == 0 || cmd_direction == 3 ? angle_right : angle_left);
+  const double wheel_velocity_left = d[cmd_direction][2] * (cmd_direction == 0 || cmd_direction == 3 ? velocity_left : velocity_right);
+  const double wheel_velocity_right = d[cmd_direction][3] * (cmd_direction == 0 || cmd_direction == 3 ? velocity_right : velocity_left);;
 
   // Debugger
   RCLCPP_INFO(logger, "Linear: %f, Angular: %f\nTurning radius: %f \nAngle left: %f, right: %f \nWheel velocity left: %f, right: %f \n", linear_command, angular_command, turning_radius, steering_angle_left, steering_angle_right, wheel_velocity_left, wheel_velocity_right);
