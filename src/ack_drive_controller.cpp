@@ -214,7 +214,7 @@ controller_interface::return_type AckDriveController::update()
   // RCLCPP_INFO(logger, "Velocity right: %f",  registered_right_wheel_handles_[0].velocity.get().get_value());
 
   // Speed limiter
-  if (angular_command == 0 && linear_command != 0){
+  if (angular_command != 0 && linear_command == 0){
     RCLCPP_ERROR(logger, "Turning radius is too short!\n");
     return controller_interface::return_type::ERROR;
   }
