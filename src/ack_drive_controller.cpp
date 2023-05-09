@@ -213,13 +213,19 @@ controller_interface::return_type AckDriveController::update()
   // RCLCPP_INFO(logger, "Velocity left: %f",  registered_left_wheel_handles_[0].velocity.get().get_value());
   // RCLCPP_INFO(logger, "Velocity right: %f",  registered_right_wheel_handles_[0].velocity.get().get_value());
 
-  // ODOM_EDIT
+  // Speed limiter
+  if (angular_command == 0 && linear_command != 0){
+    RCLCPP_ERROR(logger, "Turning radius is too short!\n");
+    return controller_interface::return_type::ERROR;
+  }
+
   if (odom_params_.open_loop)
   {
     odometry_.updateOpenLoop(linear_command, angular_command, current_time);
   }
   else
   {
+
     double left_position_mean = 0.0;
     double right_position_mean = 0.0;
     for (size_t index = 0; index < wheels.wheels_per_side; ++index)
@@ -326,6 +332,7 @@ controller_interface::return_type AckDriveController::update()
     velocity_right = abs(angular_command * right_axis / right_wheel_radius);
   } else {
     RCLCPP_ERROR(logger, "Turning radius is too short!\n");
+    return controller_interface::return_type::ERROR;
   }
 
   // Direction matrix
