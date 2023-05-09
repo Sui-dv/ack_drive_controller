@@ -209,6 +209,10 @@ controller_interface::return_type AckDriveController::update()
   const double left_wheel_radius = wheels.left_radius_multiplier * wheels.radius;
   const double right_wheel_radius = wheels.right_radius_multiplier * wheels.radius;
 
+  // // Debug encoder
+  // RCLCPP_INFO(logger, "Velocity left: %f",  registered_left_wheel_handles_[0].velocity.get().get_value());
+  // RCLCPP_INFO(logger, "Velocity right: %f",  registered_right_wheel_handles_[0].velocity.get().get_value());
+
   // ODOM_EDIT
   if (odom_params_.open_loop)
   {
@@ -220,9 +224,9 @@ controller_interface::return_type AckDriveController::update()
     double right_position_mean = 0.0;
     for (size_t index = 0; index < wheels.wheels_per_side; ++index)
     {
-      const double left_position = registered_left_wheel_handles_[index].feedback.get().get_value();
+      const double left_position = registered_left_wheel_handles_[index].velocity.get().get_value();
       const double right_position =
-        registered_right_wheel_handles_[index].feedback.get().get_value();
+        registered_right_wheel_handles_[index].velocity.get().get_value();
 
       if (std::isnan(left_position) || std::isnan(right_position))
       {
@@ -353,8 +357,8 @@ controller_interface::return_type AckDriveController::update()
   const double wheel_velocity_left = d[cmd_direction][2] * (cmd_direction == 0 || cmd_direction == 3 ? velocity_left : velocity_right);
   const double wheel_velocity_right = d[cmd_direction][3] * (cmd_direction == 0 || cmd_direction == 3 ? velocity_right : velocity_left);;
 
-  // Debugger
-  RCLCPP_INFO(logger, "Linear: %f, Angular: %f\nTurning radius: %f \nAngle left: %f, right: %f \nWheel velocity left: %f, right: %f \n", linear_command, angular_command, turning_radius, steering_angle_left, steering_angle_right, wheel_velocity_left, wheel_velocity_right);
+  // // Debugger
+  // RCLCPP_INFO(logger, "Linear: %f, Angular: %f\nTurning radius: %f \nAngle left: %f, right: %f \nWheel velocity left: %f, right: %f \n", linear_command, angular_command, turning_radius, steering_angle_left, steering_angle_right, wheel_velocity_left, wheel_velocity_right);
 
   // Set motor state: set value type const double
   for (size_t index = 0; index < wheels.wheels_per_side; ++index)
@@ -365,6 +369,7 @@ controller_interface::return_type AckDriveController::update()
 
   registered_left_steering_handles_[0].position.get().set_value(steering_angle_left);     // Front wheels
   registered_right_steering_handles_[0].position.get().set_value(steering_angle_right);
+
   registered_left_steering_handles_[1].position.get().set_value(-steering_angle_left);    // Rear wheels
   registered_right_steering_handles_[1].position.get().set_value(-steering_angle_right);
 
@@ -428,7 +433,6 @@ CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
 
   const auto wheels = wheel_params_;
 
-  const double wheel_base = wheels.base_multiplier * wheels.base;
   const double wheel_separation = wheels.separation_multiplier * wheels.separation;
   const double left_wheel_radius = wheels.left_radius_multiplier * wheels.radius;
   const double right_wheel_radius = wheels.right_radius_multiplier * wheels.radius;
