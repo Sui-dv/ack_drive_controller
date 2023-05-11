@@ -225,29 +225,55 @@ controller_interface::return_type AckDriveController::update()
   }
   else
   {
+    // double left_position_mean = 0.0;
+    // double right_position_mean = 0.0;
+    // for (size_t index = 0; index < wheels.wheels_per_side; ++index)
+    // {
+    //   const double left_position = registered_left_wheel_handles_[index].position.get().get_value();
+    //   const double right_position =
+    //     registered_right_wheel_handles_[index].position.get().get_value();
 
-    double left_position_mean = 0.0;
-    double right_position_mean = 0.0;
+    //   if (std::isnan(left_position) || std::isnan(right_position))
+    //   {
+    //     RCLCPP_ERROR(
+    //       logger, "Either the left or right wheel position is invalid for index [%zu]", index);
+    //     return controller_interface::return_type::ERROR;
+    //   }
+
+    //   left_position_mean += left_position;
+    //   right_position_mean += right_position;
+    // }
+
+    double left_velocity_mean = 0.0;
+    double right_velocity_mean = 0.0;
     for (size_t index = 0; index < wheels.wheels_per_side; ++index)
     {
-      const double left_position = registered_left_wheel_handles_[index].velocity.get().get_value();
-      const double right_position =
+      const double left_velocity = registered_left_wheel_handles_[index].velocity.get().get_value();
+      const double right_velocity =
         registered_right_wheel_handles_[index].velocity.get().get_value();
 
-      if (std::isnan(left_position) || std::isnan(right_position))
+      if (std::isnan(left_velocity) || std::isnan(right_velocity))
       {
         RCLCPP_ERROR(
-          logger, "Either the left or right wheel position is invalid for index [%zu]", index);
+          logger, "Either the left or right wheel velocity is invalid for index [%zu]", index);
         return controller_interface::return_type::ERROR;
       }
 
-      left_position_mean += left_position;
-      right_position_mean += right_position;
+      left_velocity_mean += left_velocity;
+      right_velocity_mean += right_velocity;
     }
-    left_position_mean /= wheels.wheels_per_side;
-    right_position_mean /= wheels.wheels_per_side;
+    left_velocity_mean /= wheels.wheels_per_side;
+    right_velocity_mean /= wheels.wheels_per_side;
 
-    odometry_.update(left_position_mean, right_position_mean, current_time);
+    // Debug mean
+    RCLCPP_INFO(logger, "Velocity left: %f right: %f",  left_velocity_mean*left_wheel_radius, right_velocity_mean*right_wheel_radius);
+
+    // odometry_.update(left_position_mean, right_position_mean, current_time);
+    odometry_.updateVel(left_velocity_mean*left_wheel_radius, right_velocity_mean*right_wheel_radius, current_time);
+
+    // Debug odom
+    RCLCPP_INFO(logger, "DEBUG: %f", odometry_.getDebug());
+
   }
 
   tf2::Quaternion orientation;

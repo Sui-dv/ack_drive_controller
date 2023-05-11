@@ -88,7 +88,7 @@ protected:
   // Wheel variables
   struct WheelHandle
   {
-    std::reference_wrapper<const hardware_interface::LoanedStateInterface> feedback; // Feedback type: Velocity
+    std::reference_wrapper<const hardware_interface::LoanedStateInterface> position;
     std::reference_wrapper<hardware_interface::LoanedCommandInterface> velocity;
   };
 
@@ -105,7 +105,7 @@ protected:
   // Steering variables
   struct SteeringHandle
   {
-    std::reference_wrapper<const hardware_interface::LoanedStateInterface> feedback; // Feedback type: Position
+    std::reference_wrapper<const hardware_interface::LoanedStateInterface> velocity;
     std::reference_wrapper<hardware_interface::LoanedCommandInterface> position;
   };
 

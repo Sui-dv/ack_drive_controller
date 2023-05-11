@@ -37,7 +37,10 @@ public:
   void init(const rclcpp::Time & time);
   bool update(double left_pos, double right_pos, const rclcpp::Time & time);
   void updateOpenLoop(double linear, double angular, const rclcpp::Time & time);
+  void updateVel(double left_vel, double right_vel, const rclcpp::Time & time);
   void resetOdometry();
+
+  double getDebug() const { return debug_; } //debugger
 
   double getX() const { return x_; }
   double getY() const { return y_; }
@@ -57,6 +60,9 @@ private:
 
   // Current timestamp:
   rclcpp::Time timestamp_;
+
+  // Debugger
+  double debug_;
 
   // Current pose:
   double x_;        //   [m]

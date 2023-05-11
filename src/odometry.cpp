@@ -22,6 +22,7 @@ namespace ack_drive_controller
 {
 Odometry::Odometry(size_t velocity_rolling_window_size)
 : timestamp_(0.0),
+  debug_(0.0), // Debugger
   x_(0.0),
   y_(0.0),
   heading_(0.0),
@@ -43,6 +44,18 @@ void Odometry::init(const rclcpp::Time & time)
   // Reset accumulators and timestamp:
   resetAccumulators();
   timestamp_ = time;
+}
+
+void Odometry::updateVel(double angle, double velocity, const rclcpp::Time & time)
+{ 
+  /// Save last linear and angular velocity:
+  linear_ = (right_vel + left_vel) * 0.5;
+  angular_ = (right_vel - left_vel) / wheel_separation_;;
+
+  /// Integrate odometry:
+  const double dt = time.seconds() - timestamp_.seconds();
+  timestamp_ = time;
+  integrateExact(linear_ * dt, angular_ * dt);
 }
 
 bool Odometry::update(double left_pos, double right_pos, const rclcpp::Time & time)
