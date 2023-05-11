@@ -37,7 +37,7 @@ public:
   void init(const rclcpp::Time & time);
   bool update(double left_pos, double right_pos, const rclcpp::Time & time);
   void updateOpenLoop(double linear, double angular, const rclcpp::Time & time);
-  void updateVel(double left_vel, double right_vel, const rclcpp::Time & time);
+  void updateVel(double angle, double velocity, const rclcpp::Time & time);
   void resetOdometry();
 
   double getDebug() const { return debug_; } //debugger
@@ -48,7 +48,7 @@ public:
   double getLinear() const { return linear_; }
   double getAngular() const { return angular_; }
 
-  void setWheelParams(double wheel_separation, double left_wheel_radius, double right_wheel_radius);
+  void setWheelParams(double wheel_separation, double wheel_base, double left_wheel_radius, double right_wheel_radius);
   void setVelocityRollingWindowSize(size_t velocity_rolling_window_size);
 
 private:
@@ -75,6 +75,7 @@ private:
 
   // Wheel kinematic parameters [m]:
   double wheel_separation_;
+  double wheel_base_;
   double left_wheel_radius_;
   double right_wheel_radius_;
 

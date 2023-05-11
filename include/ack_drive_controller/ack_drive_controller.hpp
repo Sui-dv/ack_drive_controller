@@ -185,6 +185,8 @@ protected:
 
   bool reset();
   void halt();
+
+  int quadrant(double linear, double angular);
 };
 }  // namespace ack_drive_controller
 #endif  // ACK_DRIVE_CONTROLLER__ACK_DRIVE_CONTROLLER_HPP_

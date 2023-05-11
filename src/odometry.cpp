@@ -29,6 +29,7 @@ Odometry::Odometry(size_t velocity_rolling_window_size)
   linear_(0.0),
   angular_(0.0),
   wheel_separation_(0.0),
+  wheel_base_(0.0),
   left_wheel_radius_(0.0),
   right_wheel_radius_(0.0),
   left_wheel_old_pos_(0.0),
@@ -48,14 +49,28 @@ void Odometry::init(const rclcpp::Time & time)
 
 void Odometry::updateVel(double angle, double velocity, const rclcpp::Time & time)
 { 
-  /// Save last linear and angular velocity:
-  linear_ = (right_vel + left_vel) * 0.5;
-  angular_ = (right_vel - left_vel) / wheel_separation_;;
+  if (angle == 0){
+    angular_ = 0;
+    linear_ = velocity * left_wheel_radius_;
+  } else {
+    double R = (wheel_base_ / 2) + (wheel_separation_ / 2) / tan(angle);
+    double R_i = (wheel_separation_ / 2) / sin(angle);
 
-  /// Integrate odometry:
+    angular_ = velocity * left_wheel_radius_ / R_i;
+    linear_ = R / angular_;
+  }
+
   const double dt = time.seconds() - timestamp_.seconds();
+  if (dt < 0.0001){
+    return;
+  }
   timestamp_ = time;
-  integrateExact(linear_ * dt, angular_ * dt);
+
+  x_ += 0.5 * linear_ * cos(heading_) * dt;
+  y_ += 0.5 * linear_ * sin(heading_) * dt;
+  heading_ += angular_ * dt;
+
+  debug_ = x_;
 }
 
 bool Odometry::update(double left_pos, double right_pos, const rclcpp::Time & time)
@@ -119,9 +134,10 @@ void Odometry::resetOdometry()
 }
 
 void Odometry::setWheelParams(
-  double wheel_separation, double left_wheel_radius, double right_wheel_radius)
+  double wheel_separation, double wheel_base, double left_wheel_radius, double right_wheel_radius)
 {
   wheel_separation_ = wheel_separation;
+  wheel_base_ = wheel_base;
   left_wheel_radius_ = left_wheel_radius;
   right_wheel_radius_ = right_wheel_radius;
 }

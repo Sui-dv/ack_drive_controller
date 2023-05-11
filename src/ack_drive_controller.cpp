@@ -246,11 +246,19 @@ controller_interface::return_type AckDriveController::update()
 
     double left_velocity_mean = 0.0;
     double right_velocity_mean = 0.0;
+    double left_angle_mean = 0.0;
+    double right_angle_mean = 0.0;
+    int q = 0;
     for (size_t index = 0; index < wheels.wheels_per_side; ++index)
     {
       const double left_velocity = registered_left_wheel_handles_[index].velocity.get().get_value();
-      const double right_velocity =
-        registered_right_wheel_handles_[index].velocity.get().get_value();
+      const double right_velocity = registered_right_wheel_handles_[index].velocity.get().get_value();
+      const double left_angle = registered_left_steering_handles_[index].position.get().get_value();
+      const double right_angle = registered_right_steering_handles_[index].position.get().get_value();
+
+      if (index == 0){
+        q = quadrant(left_velocity, left_angle);
+      }
 
       if (std::isnan(left_velocity) || std::isnan(right_velocity))
       {
@@ -259,17 +267,33 @@ controller_interface::return_type AckDriveController::update()
         return controller_interface::return_type::ERROR;
       }
 
-      left_velocity_mean += left_velocity;
-      right_velocity_mean += right_velocity;
+      if (std::isnan(left_angle) || std::isnan(right_angle))
+      {
+        RCLCPP_ERROR(
+          logger, "Either the left or right steering angle is invalid for index [%zu]", index);
+        return controller_interface::return_type::ERROR;
+      }
+
+      left_velocity_mean += abs(left_velocity);
+      right_velocity_mean += abs(right_velocity);
+
+      left_angle_mean += abs(left_angle);
+      right_angle_mean += abs(right_angle);
     }
+
     left_velocity_mean /= wheels.wheels_per_side;
     right_velocity_mean /= wheels.wheels_per_side;
+    left_angle_mean /= wheels.wheels_per_side;
+    right_angle_mean /= wheels.wheels_per_side;
+
+    double velocity_encoder = std::min(left_velocity_mean, right_velocity_mean) * (q == 0 || q == 1 ? 1 : -1);
+    double angle_encoder = std::max(left_angle_mean, right_angle_mean) * (q == 0 || q == 2 ? 1 : -1);
 
     // Debug mean
-    RCLCPP_INFO(logger, "Velocity left: %f right: %f",  left_velocity_mean*left_wheel_radius, right_velocity_mean*right_wheel_radius);
+    RCLCPP_INFO(logger, "Velocity: %f, Angle: %f",  velocity_encoder, angle_encoder);
 
     // odometry_.update(left_position_mean, right_position_mean, current_time);
-    odometry_.updateVel(left_velocity_mean*left_wheel_radius, right_velocity_mean*right_wheel_radius, current_time);
+    odometry_.updateVel(angle_encoder, velocity_encoder, current_time);
 
     // Debug odom
     RCLCPP_INFO(logger, "DEBUG: %f", odometry_.getDebug());
@@ -369,26 +393,12 @@ controller_interface::return_type AckDriveController::update()
    {1, 1, -1, -1} // Linear < 0, Angular < 0
   };
 
-  // Quadrant Check
-  int cmd_direction = 0;
-  if (linear_command > 0) {
-    if (angular_command > 0) {
-      cmd_direction = 0;
-    } else {
-      cmd_direction = 1;
-    }
-  } else {
-    if (angular_command > 0) {
-      cmd_direction = 2;
-    } else {
-      cmd_direction = 3;
-    }
-  }
+  int q = quadrant(linear_command, angular_command);
 
-  const double steering_angle_left = d[cmd_direction][0] * (cmd_direction == 0 || cmd_direction == 3 ? angle_left : angle_right);
-  const double steering_angle_right = d[cmd_direction][1] * (cmd_direction == 0 || cmd_direction == 3 ? angle_right : angle_left);
-  const double wheel_velocity_left = d[cmd_direction][2] * (cmd_direction == 0 || cmd_direction == 3 ? velocity_left : velocity_right);
-  const double wheel_velocity_right = d[cmd_direction][3] * (cmd_direction == 0 || cmd_direction == 3 ? velocity_right : velocity_left);;
+  const double steering_angle_left = d[q][0] * (q == 0 || q == 3 ? angle_left : angle_right);
+  const double steering_angle_right = d[q][1] * (q == 0 || q == 3 ? angle_right : angle_left);
+  const double wheel_velocity_left = d[q][2] * (q == 0 || q == 3 ? velocity_left : velocity_right);
+  const double wheel_velocity_right = d[q][3] * (q == 0 || q == 3 ? velocity_right : velocity_left);;
 
   // // Debugger
   // RCLCPP_INFO(logger, "Linear: %f, Angular: %f\nTurning radius: %f \nAngle left: %f, right: %f \nWheel velocity left: %f, right: %f \n", linear_command, angular_command, turning_radius, steering_angle_left, steering_angle_right, wheel_velocity_left, wheel_velocity_right);
@@ -467,10 +477,11 @@ CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
   const auto wheels = wheel_params_;
 
   const double wheel_separation = wheels.separation_multiplier * wheels.separation;
+  const double wheel_base = wheels.base_multiplier * wheels.base;
   const double left_wheel_radius = wheels.left_radius_multiplier * wheels.radius;
   const double right_wheel_radius = wheels.right_radius_multiplier * wheels.radius;
 
-  odometry_.setWheelParams(wheel_separation, left_wheel_radius, right_wheel_radius);
+  odometry_.setWheelParams(wheel_separation, wheel_base, left_wheel_radius, right_wheel_radius);
   odometry_.setVelocityRollingWindowSize(
     node_->get_parameter("velocity_rolling_window_size").as_int());
 
@@ -729,6 +740,22 @@ bool AckDriveController::reset()
 CallbackReturn AckDriveController::on_shutdown(const rclcpp_lifecycle::State &)
 {
   return CallbackReturn::SUCCESS;
+}
+
+int AckDriveController::quadrant(double linear, double angular){
+  if (linear > 0) {
+    if (angular >= 0) {
+      return 0;
+    } else {
+      return 1;
+    }
+  } else {
+    if (angular > 0) {
+      return 2;
+    } else {
+      return 3;
+    }
+  }
 }
 
 void AckDriveController::halt()
