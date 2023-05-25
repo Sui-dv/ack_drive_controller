@@ -289,14 +289,14 @@ controller_interface::return_type AckDriveController::update()
     double velocity_encoder = std::min(left_velocity_mean, right_velocity_mean) * (q == 0 || q == 1 ? 1 : -1);
     double angle_encoder = std::max(left_angle_mean, right_angle_mean) * (q == 0 || q == 2 ? 1 : -1);
 
-    // Debug mean
-    RCLCPP_INFO(logger, "Velocity: %f, Angle: %f",  velocity_encoder, angle_encoder);
+    // // Debug mean
+    // RCLCPP_INFO(logger, "Velocity: %f, Angle: %f",  velocity_encoder, angle_encoder);
 
     // odometry_.update(left_position_mean, right_position_mean, current_time);
     odometry_.updateVel(angle_encoder, velocity_encoder, current_time);
 
-    // Debug odom
-    RCLCPP_INFO(logger, "DEBUG: %f", odometry_.getDebug());
+    // // Debug odom
+    // RCLCPP_INFO(logger, "DEBUG: %f", odometry_.getDebug());
 
   }
 
