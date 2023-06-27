@@ -88,7 +88,8 @@ protected:
   // Steering variables
   struct SteeringHandle
   {
-    std::reference_wrapper<const hardware_interface::LoanedStateInterface> velocity;
+    std::reference_wrapper<const hardware_interface::LoanedStateInterface> encoder_position;
+    std::reference_wrapper<const hardware_interface::LoanedStateInterface> encoder_velocity;
     std::reference_wrapper<hardware_interface::LoanedCommandInterface> position;
   };
 

@@ -139,10 +139,12 @@ InterfaceConfiguration Ack6WDController::state_interface_configuration() const
   for (const auto & joint_name : left_steering_names_)
   {
     conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
+    conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
   }
   for (const auto & joint_name : right_steering_names_)
   {
     conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
+    conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
   }
   return {interface_configuration_type::INDIVIDUAL, conf_names};
 }
@@ -841,15 +843,27 @@ CallbackReturn Ack6WDController::configure_side_steering(
   registered_handles.reserve(steering_names.size());
   for (const auto & steering_name : steering_names)
   {
-    const auto state_handle = std::find_if(
+    const auto state_handle_pos = std::find_if(
       state_interfaces_.cbegin(), state_interfaces_.cend(), [&steering_name](const auto & interface) {
         return interface.get_name() == steering_name &&
                interface.get_interface_name() == HW_IF_POSITION;
       });
 
-    if (state_handle == state_interfaces_.cend())
+    if (state_handle_pos == state_interfaces_.cend())
     {
-      RCLCPP_ERROR(logger, "Unable to obtain joint state handle for %s", steering_name.c_str());
+      RCLCPP_ERROR(logger, "Unable to obtain joint state position handle for %s", steering_name.c_str());
+      return CallbackReturn::ERROR;
+    }
+
+    const auto state_handle_vel = std::find_if(
+      state_interfaces_.cbegin(), state_interfaces_.cend(), [&steering_name](const auto & interface) {
+        return interface.get_name() == steering_name &&
+               interface.get_interface_name() == HW_IF_VELOCITY;
+      });
+
+    if (state_handle_vel == state_interfaces_.cend())
+    {
+      RCLCPP_ERROR(logger, "Unable to obtain joint state velocity handle for %s", steering_name.c_str());
       return CallbackReturn::ERROR;
     }
 
@@ -867,7 +881,7 @@ CallbackReturn Ack6WDController::configure_side_steering(
     }
 
     registered_handles.emplace_back(
-      SteeringHandle{std::ref(*state_handle), std::ref(*command_handle)});
+      SteeringHandle{std::ref(*state_handle_pos), std::ref(*state_handle_pos), std::ref(*command_handle)});
   }
 
   return CallbackReturn::SUCCESS;
