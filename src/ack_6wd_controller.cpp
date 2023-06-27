@@ -50,6 +50,8 @@ controller_interface::return_type Ack6WDController::init(const std::string & con
     auto_declare<std::vector<std::string>>("left_steering_names", std::vector<std::string>());
     auto_declare<std::vector<std::string>>("right_steering_names", std::vector<std::string>());
 
+    auto_declare<std::vector<std::string>>("middle_wheel_names", std::vector<std::string>());
+
     auto_declare<double>("wheel_base", wheel_params_.base);
     auto_declare<double>("wheel_separation", wheel_params_.separation);
     auto_declare<int>("wheels_per_side", wheel_params_.wheels_per_side);
@@ -413,6 +415,8 @@ CallbackReturn Ack6WDController::on_configure(const rclcpp_lifecycle::State &)
   left_wheel_names_ = node_->get_parameter("left_wheel_names").as_string_array();
   right_wheel_names_ = node_->get_parameter("right_wheel_names").as_string_array();
 
+  middle_wheel_names_ = node_->get_parameter("middle_wheel_names").as_string_array();
+
   if (left_wheel_names_.size() != right_wheel_names_.size())
   {
     RCLCPP_ERROR(
@@ -425,6 +429,14 @@ CallbackReturn Ack6WDController::on_configure(const rclcpp_lifecycle::State &)
   {
     RCLCPP_ERROR(logger, "Wheel names parameters are empty!");
     return CallbackReturn::ERROR;
+  }
+
+  if (middle_wheel_names_.empty())
+  {
+    RCLCPP_ERROR(logger, "Middle wheel names parameters are empty!");
+    return CallbackReturn::ERROR;
+  } else {
+    RCLCPP_INFO(logger, "!!!!!!!!!!!!!!!!!!!MIDDLE!!!!!!!!!!!!!!!!!");
   }
 
   // update parameters for steerings
