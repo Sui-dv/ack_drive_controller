@@ -206,10 +206,6 @@ controller_interface::return_type Ack6WDController::update()
   const double left_wheel_radius = wheels.left_radius_multiplier * wheels.radius;
   const double right_wheel_radius = wheels.right_radius_multiplier * wheels.radius;
 
-  // // Debug encoder
-  // RCLCPP_INFO(logger, "Velocity left: %f",  registered_left_wheel_handles_[0].velocity.get().get_value());
-  // RCLCPP_INFO(logger, "Velocity right: %f",  registered_right_wheel_handles_[0].velocity.get().get_value());
-
   // Speed limiter
   if (angular_command != 0 && linear_command == 0){
     RCLCPP_ERROR(logger, "Turning radius is too short!\n");
@@ -356,10 +352,14 @@ controller_interface::return_type Ack6WDController::update()
   }
 
   double angle_left, angle_right, velocity_left, velocity_right, turning_radius = -1;
+  double velocity_mid_left, velocity_mid_right;
 
   if (angular_command == 0){
     velocity_left = abs(linear_command / left_wheel_radius);
     velocity_right = abs(linear_command / right_wheel_radius);
+    velocity_mid_left = velocity_left;
+    velocity_mid_right = velocity_right;
+
     angle_left = 0;
     angle_right = 0;
   } else if (linear_command != 0) {
@@ -377,6 +377,9 @@ controller_interface::return_type Ack6WDController::update()
     // Compute wheels velocities:
     velocity_left = abs(angular_command * left_axis / left_wheel_radius);
     velocity_right = abs(angular_command * right_axis / right_wheel_radius);
+
+    velocity_mid_left = abs(angular_command * (turning_radius - wheel_base) / left_wheel_radius);
+    velocity_mid_right = abs(angular_command * (turning_radius + wheel_base) / right_wheel_radius);
   } else {
     RCLCPP_ERROR(logger, "Turning radius is too short!\n");
     return controller_interface::return_type::ERROR;
@@ -395,10 +398,13 @@ controller_interface::return_type Ack6WDController::update()
   const double steering_angle_left = d[q][0] * (q == 0 || q == 3 ? angle_left : angle_right);
   const double steering_angle_right = d[q][1] * (q == 0 || q == 3 ? angle_right : angle_left);
   const double wheel_velocity_left = d[q][2] * (q == 0 || q == 3 ? velocity_left : velocity_right);
-  const double wheel_velocity_right = d[q][3] * (q == 0 || q == 3 ? velocity_right : velocity_left);;
+  const double wheel_velocity_right = d[q][3] * (q == 0 || q == 3 ? velocity_right : velocity_left);
 
-  // // Debugger
-  // RCLCPP_INFO(logger, "Linear: %f, Angular: %f\nTurning radius: %f \nAngle left: %f, right: %f \nWheel velocity left: %f, right: %f \n", linear_command, angular_command, turning_radius, steering_angle_left, steering_angle_right, wheel_velocity_left, wheel_velocity_right);
+  const double wheel_velocity_mid_left = d[q][2] * (q == 0 || q == 3 ? velocity_mid_left : velocity_mid_right);
+  const double wheel_velocity_mid_right = d[q][3] * (q == 0 || q == 3 ? velocity_mid_right : velocity_mid_left);
+
+  // Debugger
+  // RCLCPP_INFO(logger, "velocity left, front: %f, middle: %f \nvelocity right, front: %f, middle: %f \n", wheel_velocity_left, wheel_velocity_mid_left, wheel_velocity_right, wheel_velocity_mid_right);
 
   // Set motor state: set value type const double
   for (size_t index = 0; index < wheels.wheels_per_side; ++index)
@@ -406,6 +412,9 @@ controller_interface::return_type Ack6WDController::update()
     registered_left_wheel_handles_[index].velocity.get().set_value(wheel_velocity_left);
     registered_right_wheel_handles_[index].velocity.get().set_value(wheel_velocity_right);
   }
+
+  registered_middle_wheel_handles_[0].velocity.get().set_value(wheel_velocity_mid_right); // Middle-right wheel
+  registered_middle_wheel_handles_[1].velocity.get().set_value(wheel_velocity_mid_left);  // Middle-left wheel
 
   registered_left_steering_handles_[0].position.get().set_value(steering_angle_left);     // Front wheels
   registered_right_steering_handles_[0].position.get().set_value(steering_angle_right);
