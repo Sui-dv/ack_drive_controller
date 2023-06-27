@@ -128,10 +128,12 @@ InterfaceConfiguration Ack6WDController::state_interface_configuration() const
   std::vector<std::string> conf_names;
   for (const auto & joint_name : left_wheel_names_)
   {
+    conf_names.push_back(joint_name + "/" + HW_IF_POSITION);        
     conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
   }
   for (const auto & joint_name : right_wheel_names_)
   {
+    conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
     conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
   }
   for (const auto & joint_name : left_steering_names_)
@@ -779,15 +781,27 @@ CallbackReturn Ack6WDController::configure_side_wheel(
   registered_handles.reserve(wheel_names.size());
   for (const auto & wheel_name : wheel_names)
   {
-    const auto state_handle = std::find_if(
+    const auto state_handle_pos = std::find_if(
+      state_interfaces_.cbegin(), state_interfaces_.cend(), [&wheel_name](const auto & interface) {
+        return interface.get_name() == wheel_name &&
+               interface.get_interface_name() == HW_IF_POSITION;
+      });
+
+    if (state_handle_pos == state_interfaces_.cend())
+    {
+      RCLCPP_ERROR(logger, "Unable to obtain joint state position handle for %s", wheel_name.c_str());
+      return CallbackReturn::ERROR;
+    }
+
+    const auto state_handle_vel = std::find_if(
       state_interfaces_.cbegin(), state_interfaces_.cend(), [&wheel_name](const auto & interface) {
         return interface.get_name() == wheel_name &&
                interface.get_interface_name() == HW_IF_VELOCITY;
       });
 
-    if (state_handle == state_interfaces_.cend())
+    if (state_handle_vel == state_interfaces_.cend())
     {
-      RCLCPP_ERROR(logger, "Unable to obtain joint state handle for %s", wheel_name.c_str());
+      RCLCPP_ERROR(logger, "Unable to obtain joint state velocity handle for %s", wheel_name.c_str());
       return CallbackReturn::ERROR;
     }
 
@@ -805,7 +819,7 @@ CallbackReturn Ack6WDController::configure_side_wheel(
     }
 
     registered_handles.emplace_back(
-      WheelHandle{std::ref(*state_handle), std::ref(*command_handle)});
+      WheelHandle{std::ref(*state_handle_pos), std::ref(*state_handle_vel), std::ref(*command_handle)});
   }
 
   return CallbackReturn::SUCCESS;

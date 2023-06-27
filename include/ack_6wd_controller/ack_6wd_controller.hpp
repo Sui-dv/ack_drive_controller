@@ -70,7 +70,8 @@ protected:
   // Wheel variables
   struct WheelHandle
   {
-    std::reference_wrapper<const hardware_interface::LoanedStateInterface> position;
+    std::reference_wrapper<const hardware_interface::LoanedStateInterface> encoder_position;
+    std::reference_wrapper<const hardware_interface::LoanedStateInterface> encoder_velocity;
     std::reference_wrapper<hardware_interface::LoanedCommandInterface> velocity;
   };
 
