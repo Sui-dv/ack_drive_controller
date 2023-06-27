@@ -85,6 +85,7 @@ protected:
 
   std::vector<WheelHandle> registered_left_wheel_handles_;
   std::vector<WheelHandle> registered_right_wheel_handles_;
+  std::vector<WheelHandle> registered_middle_wheel_handles_;
 
   // Steering variables
   struct SteeringHandle

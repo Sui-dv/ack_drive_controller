@@ -114,6 +114,10 @@ InterfaceConfiguration Ack6WDController::command_interface_configuration() const
   {
     conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
   }
+  for (const auto & joint_name : middle_wheel_names_)
+  {
+    conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
+  }
   for (const auto & joint_name : left_steering_names_)
   {
     conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
@@ -134,6 +138,11 @@ InterfaceConfiguration Ack6WDController::state_interface_configuration() const
     conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
   }
   for (const auto & joint_name : right_wheel_names_)
+  {
+    conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
+    conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
+  }
+  for (const auto & joint_name : middle_wheel_names_)
   {
     conf_names.push_back(joint_name + "/" + HW_IF_POSITION);
     conf_names.push_back(joint_name + "/" + HW_IF_VELOCITY);
@@ -435,8 +444,6 @@ CallbackReturn Ack6WDController::on_configure(const rclcpp_lifecycle::State &)
   {
     RCLCPP_ERROR(logger, "Middle wheel names parameters are empty!");
     return CallbackReturn::ERROR;
-  } else {
-    RCLCPP_INFO(logger, "!!!!!!!!!!!!!!!!!!!MIDDLE!!!!!!!!!!!!!!!!!");
   }
 
   // update parameters for steerings
@@ -660,8 +667,12 @@ CallbackReturn Ack6WDController::on_activate(const rclcpp_lifecycle::State &)
   const auto right_steering_result =
     configure_side_steering("right", right_steering_names_, registered_right_steering_handles_);
 
+  const auto middle_wheel_result =
+    configure_side_wheel("middle", middle_wheel_names_, registered_middle_wheel_handles_);
+
   if (left_wheel_result == CallbackReturn::ERROR || right_wheel_result == CallbackReturn::ERROR
-      || left_steering_result == CallbackReturn::ERROR || right_steering_result == CallbackReturn::ERROR)
+      || left_steering_result == CallbackReturn::ERROR || right_steering_result == CallbackReturn::ERROR
+      || middle_wheel_result == CallbackReturn::ERROR)
   {
     return CallbackReturn::ERROR;
   }
@@ -670,6 +681,13 @@ CallbackReturn Ack6WDController::on_activate(const rclcpp_lifecycle::State &)
   {
     RCLCPP_ERROR(
       node_->get_logger(), "Either left wheel interfaces, right wheel interfaces are non existent");
+    return CallbackReturn::ERROR;
+  }
+
+  if (registered_middle_wheel_handles_.empty())
+  {
+    RCLCPP_ERROR(
+      node_->get_logger(), "Middle wheel interfaces are non existent");
     return CallbackReturn::ERROR;
   }
 
@@ -723,6 +741,8 @@ bool Ack6WDController::reset()
 
   registered_left_wheel_handles_.clear();
   registered_right_wheel_handles_.clear();
+  registered_middle_wheel_handles_.clear();
+
   registered_left_steering_handles_.clear();
   registered_right_steering_handles_.clear();
 
@@ -768,6 +788,8 @@ void Ack6WDController::halt()
   halt_wheels(registered_left_wheel_handles_);
   halt_wheels(registered_right_wheel_handles_);
 
+  halt_wheels(registered_middle_wheel_handles_);
+
   const auto halt_steerings = [](auto & steering_handles) {
     for (const auto & steering_handle : steering_handles)
     {
@@ -803,7 +825,7 @@ CallbackReturn Ack6WDController::configure_side_wheel(
 
     if (state_handle_pos == state_interfaces_.cend())
     {
-      RCLCPP_ERROR(logger, "Unable to obtain joint state position handle for %s", wheel_name.c_str());
+      RCLCPP_ERROR(logger, "Unable to obtain wheel joint state position handle for %s", wheel_name.c_str());
       return CallbackReturn::ERROR;
     }
 
@@ -815,7 +837,7 @@ CallbackReturn Ack6WDController::configure_side_wheel(
 
     if (state_handle_vel == state_interfaces_.cend())
     {
-      RCLCPP_ERROR(logger, "Unable to obtain joint state velocity handle for %s", wheel_name.c_str());
+      RCLCPP_ERROR(logger, "Unable to obtain wheel joint state velocity handle for %s", wheel_name.c_str());
       return CallbackReturn::ERROR;
     }
 
@@ -828,7 +850,7 @@ CallbackReturn Ack6WDController::configure_side_wheel(
 
     if (command_handle == command_interfaces_.end())
     {
-      RCLCPP_ERROR(logger, "Unable to obtain joint command handle for %s", wheel_name.c_str());
+      RCLCPP_ERROR(logger, "Unable to obtain wheel joint command handle for %s", wheel_name.c_str());
       return CallbackReturn::ERROR;
     }
 
