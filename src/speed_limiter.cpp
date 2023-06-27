@@ -1,28 +1,10 @@
-// Copyright 2020 PAL Robotics S.L.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-/*
- * Author: Enrique Fernández
- */
-
 #include <algorithm>
 #include <stdexcept>
 
-#include "ack_drive_controller/speed_limiter.hpp"
+#include "ack_6wd_controller/speed_limiter.hpp"
 #include "rcppmath/clamp.hpp"
 
-namespace ack_drive_controller
+namespace ack_6wd_controller
 {
 SpeedLimiter::SpeedLimiter(
   bool has_velocity_limits, bool has_acceleration_limits, bool has_jerk_limits, double min_velocity,
@@ -137,4 +119,4 @@ double SpeedLimiter::limit_jerk(double & v, double v0, double v1, double dt)
   return tmp != 0.0 ? v / tmp : 1.0;
 }
 
-}  // namespace ack_drive_controller
+}  // namespace ack_6wd_controller

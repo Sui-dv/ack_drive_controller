@@ -1,7 +1,0 @@
-<library path="ack_drive_controller">
-  <class name="ack_drive_controller/AckDriveController" type="ack_drive_controller::AckDriveController" base_class_type="controller_interface::ControllerInterface">
-  <description>
-    The ackermann drive controller transforms linear and angular velocity messages into signals for each wheel(s) for a ackermann drive robot.
-  </description>
-  </class>
-</library>

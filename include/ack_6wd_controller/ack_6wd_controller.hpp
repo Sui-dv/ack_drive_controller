@@ -1,23 +1,5 @@
-// Copyright 2020 PAL Robotics S.L.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-/*
- * Author: Bence Magyar, Enrique Fernández, Manuel Meraz
- */
-
-#ifndef ACK_DRIVE_CONTROLLER__ACK_DRIVE_CONTROLLER_HPP_
-#define ACK_DRIVE_CONTROLLER__ACK_DRIVE_CONTROLLER_HPP_
+#ifndef ACK_6WD_CONTROLLER__ACK_6WD_CONTROLLER_HPP_
+#define ACK_6WD_CONTROLLER__ACK_6WD_CONTROLLER_HPP_
 
 #include <chrono>
 #include <cmath>
@@ -27,9 +9,9 @@
 #include <vector>
 
 #include "controller_interface/controller_interface.hpp"
-#include "ack_drive_controller/odometry.hpp"
-#include "ack_drive_controller/speed_limiter.hpp"
-#include "ack_drive_controller/visibility_control.h"
+#include "ack_6wd_controller/odometry.hpp"
+#include "ack_6wd_controller/speed_limiter.hpp"
+#include "ack_6wd_controller/visibility_control.h"
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "hardware_interface/handle.hpp"
@@ -42,46 +24,46 @@
 #include "realtime_tools/realtime_publisher.h"
 #include "tf2_msgs/msg/tf_message.hpp"
 
-namespace ack_drive_controller
+namespace ack_6wd_controller
 {
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-class AckDriveController : public controller_interface::ControllerInterface
+class Ack6WDController : public controller_interface::ControllerInterface
 {
   using Twist = geometry_msgs::msg::TwistStamped;
 
 public:
-  ACK_DRIVE_CONTROLLER_PUBLIC
-  AckDriveController();
+  ACK_6WD_CONTROLLER_PUBLIC
+  Ack6WDController();
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   controller_interface::return_type init(const std::string & controller_name) override;
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   controller_interface::InterfaceConfiguration command_interface_configuration() const override;
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   controller_interface::InterfaceConfiguration state_interface_configuration() const override;
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   controller_interface::return_type update() override;
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   CallbackReturn on_configure(const rclcpp_lifecycle::State & previous_state) override;
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   CallbackReturn on_cleanup(const rclcpp_lifecycle::State & previous_state) override;
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   CallbackReturn on_error(const rclcpp_lifecycle::State & previous_state) override;
 
-  ACK_DRIVE_CONTROLLER_PUBLIC
+  ACK_6WD_CONTROLLER_PUBLIC
   CallbackReturn on_shutdown(const rclcpp_lifecycle::State & previous_state) override;
 
 protected:
@@ -188,5 +170,5 @@ protected:
 
   int quadrant(double linear, double angular);
 };
-}  // namespace ack_drive_controller
-#endif  // ACK_DRIVE_CONTROLLER__ACK_DRIVE_CONTROLLER_HPP_
+}  // namespace ack_6wd_controller
+#endif  // ACK_6WD_CONTROLLER__ACK_6WD_CONTROLLER_HPP_

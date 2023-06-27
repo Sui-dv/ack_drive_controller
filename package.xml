@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>ack_drive_controller</name>
+  <name>ack_6wd_controller</name>
   <version>1.0.0</version>
-  <description>Controller for a ackermann drive mobile base.</description>
+  <description>Controller for a ackermann 6 wheels drive mobile base.</description>
   <maintainer email="firstkafaizpangestu@gmail.com">Faiz Pangestu</maintainer>
-  <license>Apache License 2.0</license>
+  <license>MIT License</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

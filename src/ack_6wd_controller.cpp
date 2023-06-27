@@ -1,21 +1,3 @@
-// Copyright 2020 PAL Robotics S.L.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-/*
- * Author: Bence Magyar, Enrique Fernández, Manuel Meraz
- */
-
 #define _USE_MATH_DEFINES
 #include <cmath>
 
@@ -25,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "ack_drive_controller/ack_drive_controller.hpp"
+#include "ack_6wd_controller/ack_6wd_controller.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 #include "rclcpp/logging.hpp"
@@ -40,7 +22,7 @@ constexpr auto DEFAULT_ODOMETRY_TOPIC = "/odom";
 constexpr auto DEFAULT_TRANSFORM_TOPIC = "/tf";
 }  // namespace
 
-namespace ack_drive_controller
+namespace ack_6wd_controller
 {
 using namespace std::chrono_literals;
 using controller_interface::interface_configuration_type;
@@ -49,9 +31,9 @@ using hardware_interface::HW_IF_POSITION;
 using hardware_interface::HW_IF_VELOCITY;
 using lifecycle_msgs::msg::State;
 
-AckDriveController::AckDriveController() : controller_interface::ControllerInterface() {}
+Ack6WDController::Ack6WDController() : controller_interface::ControllerInterface() {}
 
-controller_interface::return_type AckDriveController::init(const std::string & controller_name)
+controller_interface::return_type Ack6WDController::init(const std::string & controller_name)
 {
   // initialize lifecycle node
   auto ret = ControllerInterface::init(controller_name);
@@ -119,7 +101,7 @@ controller_interface::return_type AckDriveController::init(const std::string & c
   return controller_interface::return_type::OK;
 }
 
-InterfaceConfiguration AckDriveController::command_interface_configuration() const
+InterfaceConfiguration Ack6WDController::command_interface_configuration() const
 {
   std::vector<std::string> conf_names;
   for (const auto & joint_name : left_wheel_names_)
@@ -141,7 +123,7 @@ InterfaceConfiguration AckDriveController::command_interface_configuration() con
   return {interface_configuration_type::INDIVIDUAL, conf_names};
 }
 
-InterfaceConfiguration AckDriveController::state_interface_configuration() const
+InterfaceConfiguration Ack6WDController::state_interface_configuration() const
 {
   std::vector<std::string> conf_names;
   for (const auto & joint_name : left_wheel_names_)
@@ -163,7 +145,7 @@ InterfaceConfiguration AckDriveController::state_interface_configuration() const
   return {interface_configuration_type::INDIVIDUAL, conf_names};
 }
 
-controller_interface::return_type AckDriveController::update()
+controller_interface::return_type Ack6WDController::update()
 {
   auto logger = node_->get_logger();
   
@@ -419,7 +401,7 @@ controller_interface::return_type AckDriveController::update()
   return controller_interface::return_type::OK;
 }
 
-CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
+CallbackReturn Ack6WDController::on_configure(const rclcpp_lifecycle::State &)
 {
   auto logger = node_->get_logger();
 
@@ -651,7 +633,7 @@ CallbackReturn AckDriveController::on_configure(const rclcpp_lifecycle::State &)
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn AckDriveController::on_activate(const rclcpp_lifecycle::State &)
+CallbackReturn Ack6WDController::on_activate(const rclcpp_lifecycle::State &)
 {
   const auto left_wheel_result =
     configure_side_wheel("left", left_wheel_names_, registered_left_wheel_handles_);
@@ -689,13 +671,13 @@ CallbackReturn AckDriveController::on_activate(const rclcpp_lifecycle::State &)
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn AckDriveController::on_deactivate(const rclcpp_lifecycle::State &)
+CallbackReturn Ack6WDController::on_deactivate(const rclcpp_lifecycle::State &)
 {
   subscriber_is_active_ = false;
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn AckDriveController::on_cleanup(const rclcpp_lifecycle::State &)
+CallbackReturn Ack6WDController::on_cleanup(const rclcpp_lifecycle::State &)
 {
   if (!reset())
   {
@@ -706,7 +688,7 @@ CallbackReturn AckDriveController::on_cleanup(const rclcpp_lifecycle::State &)
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn AckDriveController::on_error(const rclcpp_lifecycle::State &)
+CallbackReturn Ack6WDController::on_error(const rclcpp_lifecycle::State &)
 {
   if (!reset())
   {
@@ -715,7 +697,7 @@ CallbackReturn AckDriveController::on_error(const rclcpp_lifecycle::State &)
   return CallbackReturn::SUCCESS;
 }
 
-bool AckDriveController::reset()
+bool Ack6WDController::reset()
 {
   odometry_.resetOdometry();
 
@@ -737,12 +719,12 @@ bool AckDriveController::reset()
   return true;
 }
 
-CallbackReturn AckDriveController::on_shutdown(const rclcpp_lifecycle::State &)
+CallbackReturn Ack6WDController::on_shutdown(const rclcpp_lifecycle::State &)
 {
   return CallbackReturn::SUCCESS;
 }
 
-int AckDriveController::quadrant(double linear, double angular){
+int Ack6WDController::quadrant(double linear, double angular){
   if (linear > 0) {
     if (angular >= 0) {
       return 0;
@@ -758,7 +740,7 @@ int AckDriveController::quadrant(double linear, double angular){
   }
 }
 
-void AckDriveController::halt()
+void Ack6WDController::halt()
 {
   const auto halt_wheels = [](auto & wheel_handles) {
     for (const auto & wheel_handle : wheel_handles)
@@ -781,7 +763,7 @@ void AckDriveController::halt()
   halt_steerings(registered_right_steering_handles_);
 }
 
-CallbackReturn AckDriveController::configure_side_wheel(
+CallbackReturn Ack6WDController::configure_side_wheel(
   const std::string & side, const std::vector<std::string> & wheel_names,
   std::vector<WheelHandle> & registered_handles)
 {
@@ -829,7 +811,7 @@ CallbackReturn AckDriveController::configure_side_wheel(
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn AckDriveController::configure_side_steering(
+CallbackReturn Ack6WDController::configure_side_steering(
   const std::string & side, const std::vector<std::string> & steering_names,
   std::vector<SteeringHandle> & registered_handles)
 {
@@ -876,9 +858,9 @@ CallbackReturn AckDriveController::configure_side_steering(
 
   return CallbackReturn::SUCCESS;
 }
-}  // namespace ack_drive_controller
+}  // namespace ack_6wd_controller
 
 #include "class_loader/register_macro.hpp"
 
 CLASS_LOADER_REGISTER_CLASS(
-  ack_drive_controller::AckDriveController, controller_interface::ControllerInterface)
+  ack_6wd_controller::Ack6WDController, controller_interface::ControllerInterface)

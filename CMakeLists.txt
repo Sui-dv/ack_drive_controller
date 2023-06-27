@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(ack_drive_controller)
+project(ack_6wd_controller)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -22,14 +22,14 @@ find_package(realtime_tools REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_msgs REQUIRED)
 
-add_library(ack_drive_controller SHARED
-  src/ack_drive_controller.cpp
+add_library(ack_6wd_controller SHARED
+  src/ack_6wd_controller.cpp
   src/odometry.cpp
   src/speed_limiter.cpp
 )
 
-target_include_directories(ack_drive_controller PRIVATE include)
-ament_target_dependencies(ack_drive_controller
+target_include_directories(ack_6wd_controller PRIVATE include)
+ament_target_dependencies(ack_6wd_controller
   builtin_interfaces
   controller_interface
   geometry_msgs
@@ -44,16 +44,16 @@ ament_target_dependencies(ack_drive_controller
 )
 # Causes the visibility macros to use dllexport rather than dllimport,
 # which is appropriate when building the dll but not consuming it.
-target_compile_definitions(ack_drive_controller PRIVATE "ACK_DRIVE_CONTROLLER_BUILDING_DLL")
+target_compile_definitions(ack_6wd_controller PRIVATE "ACK_6WD_CONTROLLER_BUILDING_DLL")
 # prevent pluginlib from using boost
-target_compile_definitions(ack_drive_controller PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
-pluginlib_export_plugin_description_file(controller_interface ack_drive_plugin.xml)
+target_compile_definitions(ack_6wd_controller PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+pluginlib_export_plugin_description_file(controller_interface ack_6wd_plugin.xml)
 
 install(DIRECTORY include/
   DESTINATION include
 )
 
-install(TARGETS ack_drive_controller
+install(TARGETS ack_6wd_controller
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -72,6 +72,6 @@ ament_export_include_directories(
   include
 )
 ament_export_libraries(
-  ack_drive_controller
+  ack_6wd_controller
 )
 ament_package()
