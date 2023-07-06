@@ -55,11 +55,11 @@ void Odometry::updateVel(double angle, double velocity, const rclcpp::Time & tim
     angular_ = 0;
     linear_ = velocity * left_wheel_radius_;
   } else {
-    double R = (wheel_base_ / 2) + (wheel_separation_ / 2) / tan(angle);
+    double R = (wheel_base_ / 2) * std::abs(angle)/angle + (wheel_separation_ / 2) / tan(angle);
     double R_i = (wheel_separation_ / 2) / sin(angle);
 
     angular_ = velocity * left_wheel_radius_ / R_i;
-    linear_ = R / angular_;
+    linear_ = R * angular_;
   }
 
   const double dt = time.seconds() - timestamp_.seconds();
@@ -68,8 +68,8 @@ void Odometry::updateVel(double angle, double velocity, const rclcpp::Time & tim
   }
   timestamp_ = time;
 
-  x_ += 0.5 * linear_ * cos(heading_) * dt;
-  y_ += 0.5 * linear_ * sin(heading_) * dt;
+  x_ += linear_ * cos(heading_) * dt;
+  y_ += linear_ * sin(heading_) * dt;
   heading_ += angular_ * dt;
 
   debug_ = x_;

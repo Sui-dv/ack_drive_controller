@@ -38,7 +38,7 @@ namespace
 constexpr auto DEFAULT_COMMAND_TOPIC = "~/cmd_vel";
 constexpr auto DEFAULT_COMMAND_UNSTAMPED_TOPIC = "~/cmd_vel_unstamped";
 constexpr auto DEFAULT_COMMAND_OUT_TOPIC = "~/cmd_vel_out";
-constexpr auto DEFAULT_ODOMETRY_TOPIC = "/odom";
+constexpr auto DEFAULT_ODOMETRY_TOPIC = "~/odom";
 constexpr auto DEFAULT_TRANSFORM_TOPIC = "/tf";
 }  // namespace
 
@@ -299,13 +299,14 @@ controller_interface::return_type Ack6WDController::update()
     left_angle_mean /= wheels.wheels_per_side;
     right_angle_mean /= wheels.wheels_per_side;
 
-    double velocity_encoder = std::min(left_velocity_mean, right_velocity_mean) * (q == 0 || q == 1 ? 1 : -1);
-    double angle_encoder = std::max(left_angle_mean, right_angle_mean) * (q == 0 || q == 2 ? 1 : -1);
+    double velocity_encoder = std::min(std::abs(left_velocity_mean), std::abs(right_velocity_mean)) * (q == 0 || q == 1 ? 1 : -1);
+    double angle_encoder = std::max(std::abs(left_angle_mean), std::abs(right_angle_mean)) * (q == 0 || q == 2 ? 1 : -1);
 
     // // Debug mean
     // RCLCPP_INFO(logger, "Velocity: %f, Angle: %f",  velocity_encoder, angle_encoder);
 
     // odometry_.update(left_position_mean, right_position_mean, current_time);
+    // RCLCPP_INFO(logger, "Velocity: %f, Angle: %f",  velocity_encoder, angle_encoder);
     odometry_.updateVel(angle_encoder, velocity_encoder, current_time);
 
     // // Debug odom
