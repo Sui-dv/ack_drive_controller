@@ -51,7 +51,7 @@ void Odometry::init(const rclcpp::Time & time)
 
 void Odometry::updateVel(double angle, double velocity, const rclcpp::Time & time)
 { 
-  if (angle == 0){
+  if (std::abs(angle) == 0){
     angular_ = 0;
     linear_ = velocity * left_wheel_radius_;
   } else {
@@ -72,7 +72,7 @@ void Odometry::updateVel(double angle, double velocity, const rclcpp::Time & tim
   y_ += linear_ * sin(heading_) * dt;
   heading_ += angular_ * dt;
 
-  debug_ = x_;
+  debug_ = linear_;
 }
 
 bool Odometry::update(double left_pos, double right_pos, const rclcpp::Time & time)

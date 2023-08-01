@@ -264,8 +264,8 @@ controller_interface::return_type Ack6WDController::update()
     int q = 0;
     for (size_t index = 0; index < wheels.wheels_per_side; ++index)
     {
-      const double left_velocity = registered_left_wheel_handles_[index].velocity.get().get_value();
-      const double right_velocity = registered_right_wheel_handles_[index].velocity.get().get_value();
+      const double left_velocity = registered_left_wheel_handles_[index].velocity.get().get_value() * 2 * 3.14 / 60; // to rad/s
+      const double right_velocity = registered_right_wheel_handles_[index].velocity.get().get_value() * 2 * 3.14 / 60;
       const double left_angle = registered_left_steering_handles_[index].position.get().get_value();
       const double right_angle = registered_right_steering_handles_[index].position.get().get_value();
 
@@ -294,22 +294,22 @@ controller_interface::return_type Ack6WDController::update()
       right_angle_mean += abs(right_angle);
     }
 
-    left_velocity_mean /= wheels.wheels_per_side;
-    right_velocity_mean /= wheels.wheels_per_side;
-    left_angle_mean /= wheels.wheels_per_side;
-    right_angle_mean /= wheels.wheels_per_side;
+    left_velocity_mean = left_velocity_mean/wheels.wheels_per_side;
+    right_velocity_mean = right_velocity_mean/wheels.wheels_per_side;
+    left_angle_mean = left_angle_mean/wheels.wheels_per_side;
+    right_angle_mean = right_angle_mean/wheels.wheels_per_side;
 
     double velocity_encoder = std::min(std::abs(left_velocity_mean), std::abs(right_velocity_mean)) * (q == 0 || q == 1 ? 1 : -1);
     double angle_encoder = std::max(std::abs(left_angle_mean), std::abs(right_angle_mean)) * (q == 0 || q == 2 ? 1 : -1);
 
-    // // Debug mean
+    // Debug mean
     // RCLCPP_INFO(logger, "Velocity: %f, Angle: %f",  velocity_encoder, angle_encoder);
 
     // odometry_.update(left_position_mean, right_position_mean, current_time);
     // RCLCPP_INFO(logger, "Velocity: %f, Angle: %f",  velocity_encoder, angle_encoder);
     odometry_.updateVel(angle_encoder, velocity_encoder, current_time);
 
-    // // Debug odom
+    // Debug odom
     // RCLCPP_INFO(logger, "DEBUG: %f", odometry_.getDebug());
 
   }
@@ -426,16 +426,17 @@ controller_interface::return_type Ack6WDController::update()
 
   // Debugger
   // RCLCPP_INFO(logger, "velocity left, front: %f, middle: %f \nvelocity right, front: %f, middle: %f \n", wheel_velocity_left, wheel_velocity_mid_left, wheel_velocity_right, wheel_velocity_mid_right);
+  // RCLCPP_INFO(logger, "velocity left, front: %f\n", wheel_velocity_left * 60 / 6.283);
 
   // Set motor state: set value type const double
   for (size_t index = 0; index < wheels.wheels_per_side; ++index)
   {
-    registered_left_wheel_handles_[index].velocity.get().set_value(wheel_velocity_left);
-    registered_right_wheel_handles_[index].velocity.get().set_value(wheel_velocity_right);
+    registered_left_wheel_handles_[index].velocity.get().set_value(wheel_velocity_left * 60 / 6.283);  // to rpm
+    registered_right_wheel_handles_[index].velocity.get().set_value(wheel_velocity_right * 60 / 6.283);
   }
 
-  registered_middle_wheel_handles_[0].velocity.get().set_value(wheel_velocity_mid_right); // Middle-right wheel
-  registered_middle_wheel_handles_[1].velocity.get().set_value(wheel_velocity_mid_left);  // Middle-left wheel
+  registered_middle_wheel_handles_[0].velocity.get().set_value(wheel_velocity_mid_right * 60 / 6.283); // Middle-right wheel
+  registered_middle_wheel_handles_[1].velocity.get().set_value(wheel_velocity_mid_left * 60 / 6.283);  // Middle-left wheel
 
   registered_left_steering_handles_[0].position.get().set_value(steering_angle_left);     // Front wheels
   registered_right_steering_handles_[0].position.get().set_value(steering_angle_right);
