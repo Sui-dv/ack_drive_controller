@@ -159,7 +159,7 @@ protected:
     realtime_odometry_transform_publisher_ = nullptr;
 
   // Timeout to consider cmd_vel commands old
-  std::chrono::milliseconds cmd_vel_timeout_{210};
+  std::chrono::milliseconds cmd_vel_timeout_{500};
 
   bool subscriber_is_active_ = false;
   rclcpp::Subscription<Twist>::SharedPtr velocity_command_subscriber_ = nullptr;
