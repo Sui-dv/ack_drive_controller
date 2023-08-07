@@ -415,18 +415,28 @@ controller_interface::return_type Ack6WDController::update()
   };
 
   int q = quadrant(linear_command, angular_command);
+  // Quadrant
+  // 0 | 1
+  // -----
+  // 3 | 2
 
   const double steering_angle_left = d[q][0] * (q == 0 || q == 3 ? angle_left : angle_right);
   const double steering_angle_right = d[q][1] * (q == 0 || q == 3 ? angle_right : angle_left);
-  const double wheel_velocity_right = d[q][2] * (q == 0 || q == 3 ? velocity_left : velocity_right);
-  const double wheel_velocity_left = d[q][3] * (q == 0 || q == 3 ? velocity_right : velocity_left);
+  const double wheel_velocity_left = d[q][2] * (q == 0 || q == 3 ? velocity_right : velocity_left);
+  const double wheel_velocity_right = d[q][3] * (q == 0 || q == 3 ? velocity_left : velocity_right);
 
-  const double wheel_velocity_mid_right = d[q][2] * (q == 0 || q == 3 ? velocity_mid_left : velocity_mid_right);
-  const double wheel_velocity_mid_left = d[q][3] * (q == 0 || q == 3 ? velocity_mid_right : velocity_mid_left);
+  const double wheel_velocity_mid_left = d[q][2] * (q == 0 || q == 3 ? velocity_mid_right : velocity_mid_left);
+  const double wheel_velocity_mid_right = d[q][3] * (q == 0 || q == 3 ? velocity_mid_left : velocity_mid_right);
 
   // Debugger
-  RCLCPP_INFO(logger, "velocity left, front: %f, steering: %f \nvelocity right, front: %f, steering: %f \n", wheel_velocity_left, steering_angle_left, wheel_velocity_right, steering_angle_right);
-  // RCLCPP_INFO(logger, "velocity left, front: %f\n", wheel_velocity_left * 60 / 6.283);
+  // RCLCPP_INFO(logger, "velocity left, front: %f, steering: %f \nvelocity right, front: %f, steering: %f \n", 
+  //             wheel_velocity_left * 60 / 6.283, 
+  //             steering_angle_left, 
+  //             wheel_velocity_right  * 60 / 6.283, 
+  //             steering_angle_right);
+  // RCLCPP_INFO(logger, "mid left %f, right: %f\n", 
+  //             wheel_velocity_mid_left * 60 / 6.283,
+  //             wheel_velocity_mid_right * 60 / 6.283);
 
   // Set motor state: set value type const double
   for (size_t index = 0; index < wheels.wheels_per_side; ++index)
@@ -438,7 +448,7 @@ controller_interface::return_type Ack6WDController::update()
   registered_middle_wheel_handles_[0].velocity.get().set_value(wheel_velocity_mid_right * 60 / 6.283); // Middle-right wheel
   registered_middle_wheel_handles_[1].velocity.get().set_value(wheel_velocity_mid_left * 60 / 6.283);  // Middle-left wheel
 
-  registered_left_steering_handles_[0].position.get().set_value(steering_angle_left);     // Front wheels
+  registered_left_steering_handles_[0].position.get().set_value(steering_angle_left);     // Front wheels [rad]
   registered_right_steering_handles_[0].position.get().set_value(steering_angle_right);
 
   registered_left_steering_handles_[1].position.get().set_value(-steering_angle_left);    // Rear wheels
@@ -792,6 +802,11 @@ CallbackReturn Ack6WDController::on_shutdown(const rclcpp_lifecycle::State &)
 }
 
 int Ack6WDController::quadrant(double linear, double angular){
+  // Quadrant
+  // 0 | 1
+  // -----
+  // 3 | 2
+
   if (linear > 0) {
     if (angular >= 0) {
       return 0;
