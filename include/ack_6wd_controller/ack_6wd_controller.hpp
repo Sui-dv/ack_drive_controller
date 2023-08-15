@@ -135,6 +135,7 @@ protected:
     double separation_multiplier = 1.0;
     double left_radius_multiplier = 1.0;
     double right_radius_multiplier = 1.0;
+    double angular_velocity_compensation = 1.0;
   } wheel_params_;
 
   struct OdometryParams
