@@ -80,6 +80,7 @@ controller_interface::return_type Ack6WDController::init(const std::string & con
     auto_declare<double>("wheel_separation_multiplier", wheel_params_.separation_multiplier);
     auto_declare<double>("left_wheel_radius_multiplier", wheel_params_.left_radius_multiplier);
     auto_declare<double>("right_wheel_radius_multiplier", wheel_params_.right_radius_multiplier);
+    auto_declare<double>("angular_velocity_compensation", wheel_params_.angular_velocity_compensation);
 
     auto_declare<std::string>("odom_frame_id", odom_params_.odom_frame_id);
     auto_declare<std::string>("base_frame_id", odom_params_.base_frame_id);
@@ -225,6 +226,7 @@ controller_interface::return_type Ack6WDController::update()
   const double wheel_separation = wheels.separation_multiplier * wheels.separation;
   const double left_wheel_radius = wheels.left_radius_multiplier * wheels.radius;
   const double right_wheel_radius = wheels.right_radius_multiplier * wheels.radius;
+  const double ang_vel_comp = wheels.angular_velocity_compensation;
 
   // Speed limiter
   if (angular_command != 0 && linear_command == 0){
@@ -396,11 +398,11 @@ controller_interface::return_type Ack6WDController::update()
     const double right_axis = abs(wheel_separation / (2 * sin(angle_right)));
 
     // Compute wheels velocities:
-    velocity_left = abs(angular_command * left_axis / left_wheel_radius);
-    velocity_right = abs(angular_command * right_axis / right_wheel_radius);
+    velocity_left = abs(angular_command * left_axis / left_wheel_radius) * ang_vel_comp;
+    velocity_right = abs(angular_command * right_axis / right_wheel_radius) * ang_vel_comp;
 
-    velocity_mid_left = abs(angular_command * (turning_radius - wheel_base) / left_wheel_radius);
-    velocity_mid_right = abs(angular_command * (turning_radius + wheel_base) / right_wheel_radius);
+    velocity_mid_left = abs(angular_command * (turning_radius - wheel_base) / left_wheel_radius) * ang_vel_comp;
+    velocity_mid_right = abs(angular_command * (turning_radius + wheel_base) / right_wheel_radius) * ang_vel_comp;
   } else {
     RCLCPP_ERROR(logger, "Turning radius is too short!\n");
     return controller_interface::return_type::ERROR;
@@ -519,6 +521,8 @@ CallbackReturn Ack6WDController::on_configure(const rclcpp_lifecycle::State &)
     node_->get_parameter("left_wheel_radius_multiplier").as_double();
   wheel_params_.right_radius_multiplier =
     node_->get_parameter("right_wheel_radius_multiplier").as_double();
+  wheel_params_.angular_velocity_compensation =
+    node_->get_parameter("angular_velocity_compensation").as_double();
 
   const auto wheels = wheel_params_;
 
