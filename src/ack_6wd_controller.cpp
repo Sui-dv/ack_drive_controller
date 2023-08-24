@@ -425,8 +425,8 @@ controller_interface::return_type Ack6WDController::update()
   // -----
   // 3 | 2
 
-  const double steering_angle_left = d[q][0] * (q == 0 || q == 3 ? angle_left : angle_right);
-  const double steering_angle_right = d[q][1] * (q == 0 || q == 3 ? angle_right : angle_left);
+  const double steering_angle_left = d[q][0] * (q == 0 || q == 3 ? angle_left : angle_right) * steering_correction;
+  const double steering_angle_right = d[q][1] * (q == 0 || q == 3 ? angle_right : angle_left) * steering_correction;
   const double wheel_velocity_left = d[q][2] * (q == 0 || q == 3 ? velocity_left : velocity_right);
   const double wheel_velocity_right = d[q][3] * (q == 0 || q == 3 ? velocity_right : velocity_left);
 
